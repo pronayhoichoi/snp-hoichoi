@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.db import Base, engine, get_db, SessionLocal
 from app.models import models  # noqa: F401 — register models
 from app.models.models import Script, Analysis
-from app.routers import auth_routes, script_routes, admin_routes
+from app.routers import auth_routes, script_routes, admin_routes, ms_auth
 from app.auth import current_user
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -43,6 +43,7 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 templates = Jinja2Templates(directory="app/templates")
 
 app.include_router(auth_routes.router)
+app.include_router(ms_auth.router)
 app.include_router(script_routes.router)
 app.include_router(admin_routes.router)
 
