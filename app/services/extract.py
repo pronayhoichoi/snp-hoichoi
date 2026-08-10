@@ -1,20 +1,24 @@
 """Text extraction from PDF / DOCX / TXT with OCR fallback for scanned PDFs.
 
-Returns (text, ocr_used). `text` is line-numbered-friendly (one paragraph per line).
+Uses PyMuPDF (fitz) for PDFs — C-backed, ~10x lower memory than pdfplumber and
+handles 100+ page scripts fine on small containers.
+
+Returns (text, ocr_used).
 """
 from __future__ import annotations
 
-import io
-import os
+import gc
+import logging
 from pathlib import Path
 
-import pdfplumber
+import pymupdf as fitz
 from docx import Document
-from pdf2image import convert_from_path
-import pytesseract
 
-OCR_LANGS = "ben+eng"  # Bengali + English
-MIN_CHARS_PER_PAGE = 40  # below this we treat as scanned and OCR
+log = logging.getLogger(__name__)
+
+OCR_LANGS = "ben+eng"
+MIN_CHARS_PER_PAGE = 40    # below this we assume scanned/image-based → OCR
+OCR_PAGE_DPI = 200         # lower than 300 to keep memory tight during OCR
 
 
 def extract(path: str, mime: str) -> tuple[str, bool]:
@@ -35,33 +39,67 @@ def _read_txt(path: str) -> str:
 
 def _read_docx(path: str) -> str:
     doc = Document(path)
-    lines: list[str] = []
-    for p in doc.paragraphs:
-        t = p.text.strip()
-        if t:
-            lines.append(t)
+    lines = [p.text.strip() for p in doc.paragraphs if p.text.strip()]
     return "\n".join(lines)
 
 
 def _read_pdf(path: str) -> tuple[str, bool]:
-    text_pages: list[str] = []
-    scanned = False
-    with pdfplumber.open(path) as pdf:
-        for page in pdf.pages:
-            t = (page.extract_text() or "").strip()
-            text_pages.append(t)
+    """Try text extraction first (fast, low-mem). Fall back to OCR only if the
+    PDF is genuinely image-based."""
+    parts: list[str] = []
+    scanned_pages = 0
+    total_pages = 0
+
+    doc = fitz.open(path)
+    try:
+        total_pages = doc.page_count
+        log.info("pdf: %d pages", total_pages)
+        for i in range(total_pages):
+            page = doc.load_page(i)
+            t = (page.get_text("text") or "").strip()
+            parts.append(t)
             if len(t) < MIN_CHARS_PER_PAGE:
-                scanned = True
-    if not scanned:
-        return _clean("\n".join(text_pages)), False
+                scanned_pages += 1
+            page = None
+            if i % 25 == 24:
+                gc.collect()
+    finally:
+        doc.close()
+
+    scanned_ratio = scanned_pages / max(total_pages, 1)
+    if scanned_ratio < 0.5:
+        return _clean("\n".join(parts)), False
+
+    log.info("pdf: %d/%d pages appear scanned, running OCR", scanned_pages, total_pages)
+    del parts
+    gc.collect()
     return _ocr_pdf(path), True
 
 
 def _ocr_pdf(path: str) -> str:
-    images = convert_from_path(path, dpi=300)
+    """OCR one page at a time, releasing each rendered image before the next."""
+    import pytesseract
+    from PIL import Image
+
     parts: list[str] = []
-    for img in images:
-        parts.append(pytesseract.image_to_string(img, lang=OCR_LANGS))
+    doc = fitz.open(path)
+    try:
+        zoom = OCR_PAGE_DPI / 72
+        mat = fitz.Matrix(zoom, zoom)
+        for i in range(doc.page_count):
+            page = doc.load_page(i)
+            pix = page.get_pixmap(matrix=mat, alpha=False)
+            img = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
+            pix = None
+            page = None
+            text = pytesseract.image_to_string(img, lang=OCR_LANGS)
+            parts.append(text)
+            img.close()
+            del img
+            if i % 5 == 4:
+                gc.collect()
+    finally:
+        doc.close()
     return _clean("\n".join(parts))
 
 

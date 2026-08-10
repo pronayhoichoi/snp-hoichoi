@@ -1,18 +1,43 @@
+import logging
+
 from fastapi import FastAPI, Request, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
-from app.db import Base, engine, get_db
+from app.db import Base, engine, get_db, SessionLocal
 from app.models import models  # noqa: F401 — register models
 from app.models.models import Script, Analysis
 from app.routers import auth_routes, script_routes, admin_routes
 from app.auth import current_user
 
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+
 app = FastAPI(title="SnP Checker")
 
 Base.metadata.create_all(bind=engine)
+
+
+@app.on_event("startup")
+def cleanup_orphaned_analyses() -> None:
+    """Any analysis still in extracting/running at startup was killed by a
+    previous crash — mark it as error so the UI stops spinning forever."""
+    db = SessionLocal()
+    try:
+        stuck = (
+            db.query(Analysis)
+            .filter(Analysis.status.in_(["extracting", "running"]))
+            .all()
+        )
+        for a in stuck:
+            a.status = "error"
+            a.error = a.error or "Analysis was interrupted (container restart). Please try again."
+        if stuck:
+            db.commit()
+            logging.info("startup: marked %d orphaned analyses as error", len(stuck))
+    finally:
+        db.close()
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 templates = Jinja2Templates(directory="app/templates")

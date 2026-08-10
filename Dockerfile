@@ -8,7 +8,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     tesseract-ocr \
     tesseract-ocr-ben \
     tesseract-ocr-eng \
-    poppler-utils \
     libmagic1 \
     && rm -rf /var/lib/apt/lists/*
 
