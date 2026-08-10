@@ -1,20 +1,24 @@
+import logging
 import os
+import threading
 import uuid
 from datetime import datetime
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, Request
-from fastapi.responses import RedirectResponse, HTMLResponse, FileResponse
+from fastapi.responses import RedirectResponse, HTMLResponse, FileResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.auth import require_user
 from app.config import settings
-from app.db import get_db
+from app.db import get_db, SessionLocal
 from app.models.models import Script, User, Guideline, Analysis
 from app.services.extract import extract
 from app.services.analyzer import analyze
 from app.services.docx_writer import build_annotated_docx
+
+log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/scripts", tags=["scripts"])
 templates = Jinja2Templates(directory="app/templates")
@@ -79,8 +83,31 @@ async def upload(
     return RedirectResponse(f"/scripts/{script.id}/analyze", status_code=302)
 
 
+def _run_analysis_bg(analysis_id: int, script_text: str, guidelines_text: str) -> None:
+    db = SessionLocal()
+    try:
+        analysis = db.get(Analysis, analysis_id)
+        if not analysis:
+            log.error("bg: analysis %d missing", analysis_id)
+            return
+        try:
+            log.info("bg: starting analysis %d", analysis_id)
+            result = analyze(script_text, guidelines_text)
+            analysis.findings_json = result
+            analysis.status = "done"
+            analysis.completed_at = datetime.utcnow()
+            log.info("bg: analysis %d done, %d findings", analysis_id, len(result.get("findings", [])))
+        except Exception as e:
+            log.exception("bg: analysis %d failed", analysis_id)
+            analysis.status = "error"
+            analysis.error = str(e)[:2000]
+        db.commit()
+    finally:
+        db.close()
+
+
 @router.get("/{script_id}/analyze")
-def run_analysis(
+def start_analysis(
     script_id: int,
     request: Request,
     user: User = Depends(require_user),
@@ -94,14 +121,23 @@ def run_analysis(
     if not guideline:
         raise HTTPException(400, "No S&P guidelines have been set. Ask an admin to add them.")
 
-    existing = (
+    done = (
         db.query(Analysis)
         .filter(Analysis.script_id == script.id, Analysis.status == "done")
         .order_by(Analysis.created_at.desc())
         .first()
     )
-    if existing:
-        return RedirectResponse(f"/scripts/{script.id}/result/{existing.id}", status_code=302)
+    if done:
+        return RedirectResponse(f"/scripts/{script.id}/result/{done.id}", status_code=302)
+
+    running = (
+        db.query(Analysis)
+        .filter(Analysis.script_id == script.id, Analysis.status == "running")
+        .order_by(Analysis.created_at.desc())
+        .first()
+    )
+    if running:
+        return RedirectResponse(f"/scripts/{script.id}/status/{running.id}", status_code=302)
 
     analysis = Analysis(
         script_id=script.id,
@@ -112,19 +148,50 @@ def run_analysis(
     db.commit()
     db.refresh(analysis)
 
-    try:
-        result = analyze(script.text_extracted, guideline.content_text)
-        analysis.findings_json = result
-        analysis.status = "done"
-        analysis.completed_at = datetime.utcnow()
-    except Exception as e:
-        analysis.status = "error"
-        analysis.error = str(e)
-        db.commit()
-        raise HTTPException(500, f"Analysis failed: {e}") from e
-    db.commit()
+    threading.Thread(
+        target=_run_analysis_bg,
+        args=(analysis.id, script.text_extracted, guideline.content_text),
+        daemon=True,
+    ).start()
 
-    return RedirectResponse(f"/scripts/{script.id}/result/{analysis.id}", status_code=302)
+    return RedirectResponse(f"/scripts/{script.id}/status/{analysis.id}", status_code=302)
+
+
+@router.get("/{script_id}/status/{analysis_id}", response_class=HTMLResponse)
+def status_page(
+    script_id: int,
+    analysis_id: int,
+    request: Request,
+    user: User = Depends(require_user),
+    db: Session = Depends(get_db),
+):
+    script = db.get(Script, script_id)
+    analysis = db.get(Analysis, analysis_id)
+    if not script or script.user_id != user.id or not analysis or analysis.script_id != script.id:
+        raise HTTPException(404)
+    return templates.TemplateResponse(
+        request,
+        "analyze_pending.html",
+        {"user": user, "script": script, "analysis": analysis},
+    )
+
+
+@router.get("/{script_id}/status/{analysis_id}/json")
+def status_json(
+    script_id: int,
+    analysis_id: int,
+    user: User = Depends(require_user),
+    db: Session = Depends(get_db),
+):
+    script = db.get(Script, script_id)
+    analysis = db.get(Analysis, analysis_id)
+    if not script or script.user_id != user.id or not analysis or analysis.script_id != script.id:
+        raise HTTPException(404)
+    return JSONResponse({
+        "status": analysis.status,
+        "error": analysis.error or None,
+        "result_url": f"/scripts/{script.id}/result/{analysis.id}" if analysis.status == "done" else None,
+    })
 
 
 @router.get("/{script_id}/result/{analysis_id}", response_class=HTMLResponse)
@@ -139,6 +206,8 @@ def view_result(
     analysis = db.get(Analysis, analysis_id)
     if not script or script.user_id != user.id or not analysis or analysis.script_id != script.id:
         raise HTTPException(404)
+    if analysis.status != "done":
+        return RedirectResponse(f"/scripts/{script.id}/status/{analysis.id}", status_code=302)
 
     lines = script.text_extracted.splitlines()
     findings = (analysis.findings_json or {}).get("findings", [])
