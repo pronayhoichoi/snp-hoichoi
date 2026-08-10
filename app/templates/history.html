@@ -1,54 +1,97 @@
 {% extends "base.html" %}
-{% block title %}History — SnP Checker{% endblock %}
+{% block title %}History · SnP Checker{% endblock %}
 {% block content %}
+<div class="section-head"><h2>Your uploads</h2></div>
 <div class="card">
-  <h1>Your uploads</h1>
   {% if not rows %}
-    <p class="muted">Nothing yet. <a href="/">Upload a script</a>.</p>
+    <div class="empty-history">
+      <div class="empty-icon">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+        </svg>
+      </div>
+      <p class="muted">Nothing yet.</p>
+      <a class="btn-primary" href="/">Upload a script</a>
+    </div>
   {% else %}
-    <table class="history">
-      <thead>
-        <tr>
-          <th>File</th>
-          <th>Uploaded</th>
-          <th>Findings</th>
-          <th>Severity</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for r in rows %}
-        <tr>
-          <td>{{ r.script.filename }}{% if r.script.ocr_used %} <span class="chip">OCR</span>{% endif %}</td>
-          <td class="muted">{{ r.script.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
-          <td>{{ r.total }}</td>
-          <td>
-            {% if r.high %}<span class="sev-badge sev-high">{{ r.high }} high</span>{% endif %}
-            {% if r.med %}<span class="sev-badge sev-medium">{{ r.med }} med</span>{% endif %}
-            {% if r.low %}<span class="sev-badge sev-low">{{ r.low }} low</span>{% endif %}
-          </td>
-          <td>
-            {% if r.analysis %}
-              <a href="/scripts/{{ r.script.id }}/result/{{ r.analysis.id }}">View</a>
-              · <a href="/scripts/{{ r.script.id }}/download/{{ r.analysis.id }}">.docx</a>
-            {% else %}
-              <span class="muted">no analysis</span>
-            {% endif %}
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+    <div class="history-wrap">
+      <table class="history">
+        <thead>
+          <tr>
+            <th class="col-file">File</th>
+            <th class="col-date">Uploaded</th>
+            <th class="col-total">Findings</th>
+            <th class="col-sev">Severity</th>
+            <th class="col-actions"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in rows %}
+          <tr>
+            <td class="col-file">
+              <span class="fname">{{ r.script.filename }}</span>
+              {% if r.script.ocr_used %}<span class="chip">OCR</span>{% endif %}
+            </td>
+            <td class="col-date mono">{{ r.script.created_at.strftime("%d %b %Y · %H:%M") }}</td>
+            <td class="col-total mono">{{ r.total }}</td>
+            <td class="col-sev">
+              {% if r.high %}<span class="sev-badge sev-high">{{ r.high }} high</span>{% endif %}
+              {% if r.med %}<span class="sev-badge sev-medium">{{ r.med }} med</span>{% endif %}
+              {% if r.low %}<span class="sev-badge sev-low">{{ r.low }} low</span>{% endif %}
+              {% if not (r.high or r.med or r.low) %}<span class="muted small">—</span>{% endif %}
+            </td>
+            <td class="col-actions">
+              {% if r.analysis %}
+                <a class="row-action" href="/scripts/{{ r.script.id }}/result/{{ r.analysis.id }}">View</a>
+                <a class="row-action" href="/scripts/{{ r.script.id }}/download/{{ r.analysis.id }}">.docx</a>
+              {% else %}
+                <span class="muted small">no analysis</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   {% endif %}
 </div>
+
 <style>
-.history { width: 100%; border-collapse: collapse; }
-.history th, .history td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--border); font-size: 13px; }
-.history th { color: var(--muted); text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; }
-.chip { font-size: 10px; padding: 2px 6px; background: rgba(110, 168, 255, 0.15); color: var(--accent); border-radius: 999px; margin-left: 4px; }
-.sev-badge { font-size: 10px; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; margin-right: 4px; }
-.sev-badge.sev-high { background: rgba(255, 107, 107, 0.2); color: var(--danger); }
-.sev-badge.sev-medium { background: rgba(245, 165, 36, 0.2); color: var(--warn); }
-.sev-badge.sev-low { background: rgba(154, 161, 173, 0.2); color: var(--muted); }
+.empty-history { text-align: center; padding: 32px 20px; }
+.empty-history .empty-icon { color: var(--hc-text-dim); margin-bottom: 12px; }
+.empty-history .btn-primary { margin-top: 16px; }
+
+.history-wrap { overflow-x: auto; margin: -8px -8px; }
+.history {
+  width: 100%; border-collapse: separate; border-spacing: 0;
+}
+.history th, .history td {
+  text-align: left; padding: 14px 12px;
+  border-bottom: 1px solid var(--hc-surface-3);
+  font-size: 13px; vertical-align: middle;
+}
+.history th {
+  font: 700 11px var(--hc-font-primary); color: var(--hc-text-muted);
+  letter-spacing: 0.1em; text-transform: uppercase;
+  padding-top: 8px; padding-bottom: 12px;
+}
+.history tbody tr:hover { background: var(--hc-surface-1); }
+.history tbody tr:last-child td { border-bottom: 0; }
+.col-file .fname {
+  font: 600 14px var(--hc-font-primary); color: var(--hc-text);
+  letter-spacing: -0.01em;
+}
+.col-date, .col-total { color: var(--hc-text-muted); font-size: 12px; }
+.col-total { font-weight: 700; color: var(--hc-text); font-size: 14px; text-align: right; }
+.col-sev .sev-badge { margin-right: 4px; }
+.col-actions { text-align: right; white-space: nowrap; }
+.row-action {
+  display: inline-block; padding: 6px 12px;
+  font: 600 12px var(--hc-font-primary); color: var(--hc-text-muted);
+  border-radius: var(--hc-radius-pillow);
+  transition: all 0.15s; margin-left: 4px;
+}
+.row-action:hover { color: var(--hc-red); background: rgba(210,8,32,0.10); text-decoration: none; }
+.small { font-size: 12px; }
 </style>
 {% endblock %}

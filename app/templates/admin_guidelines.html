@@ -1,20 +1,92 @@
 {% extends "base.html" %}
-{% block title %}Guidelines — Admin{% endblock %}
+{% block title %}Guidelines · Admin{% endblock %}
 {% block content %}
-<div class="card">
+<div class="admin-head">
+  <div class="overline">Admin</div>
   <h1>S&amp;P Guidelines</h1>
-  <p class="muted">
-    {% if current %}
-      Active version: <strong>v{{ current.version }}</strong> — updated {{ current.created_at.strftime("%Y-%m-%d %H:%M UTC") }}
-    {% else %}
-      No guidelines set yet. Paste them below.
-    {% endif %}
+  <p class="lede muted">
+    The active version below is what every new upload is reviewed against. Saving creates a new version — old ones are archived automatically.
   </p>
-  <form method="post" action="/admin/guidelines">
-    <label>Guidelines text (Markdown or plain text)
-      <textarea name="content_text" rows="24" required>{{ current.content_text if current else "" }}</textarea>
+</div>
+
+<div class="version-strip">
+  {% if current %}
+    <div class="ver">
+      <span class="ver-num mono">v{{ current.version }}</span>
+      <span class="ver-status">Active</span>
+    </div>
+    <div class="ver-meta">
+      Updated <span class="mono">{{ current.created_at.strftime("%d %b %Y · %H:%M UTC") }}</span>
+      · <span class="mono">{{ current.content_text|length }}</span> characters
+    </div>
+  {% else %}
+    <div class="ver">
+      <span class="ver-num mono">—</span>
+      <span class="ver-status ver-empty">Not set</span>
+    </div>
+    <div class="ver-meta">Paste your guidelines below to activate reviews.</div>
+  {% endif %}
+</div>
+
+<div class="card">
+  <form method="post" action="/admin/guidelines" class="guidelines-form">
+    <label class="ta-label">Guidelines text
+      <span class="ta-hint">Plain text or Markdown. Reference these by section names in your reviewers' expectations.</span>
+      <textarea name="content_text" rows="24" required placeholder="e.g.&#10;&#10;## Section 1 — Violence&#10;No graphic depiction of violence. Off-screen implication is acceptable.&#10;&#10;## Section 2 — Language&#10;Mild profanity permitted; slurs of any kind are not.">{{ current.content_text if current else "" }}</textarea>
     </label>
-    <button type="submit" class="primary">Save new version</button>
+    <div class="form-actions">
+      <button type="submit" class="primary">
+        Save new version
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      </button>
+    </div>
   </form>
 </div>
+
+<style>
+.admin-head { margin-bottom: 16px; }
+.admin-head .overline { margin-bottom: 10px; }
+.admin-head h1 {
+  background: var(--hc-gradient);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+  display: inline-block; padding-right: 4px;
+}
+.lede { font-size: 15px; max-width: 640px; margin-top: 8px; }
+
+.version-strip {
+  display: flex; align-items: center; gap: 24px; flex-wrap: wrap;
+  background: var(--hc-surface-2); border: 1px solid var(--hc-surface-3);
+  border-radius: var(--hc-radius-md); padding: 16px 20px;
+  margin-bottom: 20px; border-left: 4px solid var(--hc-red);
+}
+.ver { display: flex; align-items: center; gap: 12px; }
+.ver-num {
+  font: 800 22px var(--hc-font-primary);
+  background: var(--hc-gradient);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: -0.02em;
+}
+.ver-status {
+  font: 700 10px var(--hc-font-primary); letter-spacing: 0.12em;
+  text-transform: uppercase; padding: 4px 12px; border-radius: var(--hc-radius-xs);
+  background: rgba(26,135,84,0.20); color: #4ecb87;
+}
+.ver-status.ver-empty { background: rgba(160,160,160,0.15); color: var(--hc-text-muted); }
+.ver-meta { color: var(--hc-text-muted); font-size: 13px; }
+
+.guidelines-form { display: flex; flex-direction: column; gap: 16px; }
+.ta-label {
+  display: block; text-transform: none;
+  font: 600 13px var(--hc-font-primary); color: var(--hc-text);
+  letter-spacing: 0; margin-bottom: 0;
+}
+.ta-hint {
+  display: block; font: 400 12px var(--hc-font-body);
+  color: var(--hc-text-muted); margin: 4px 0 12px; text-transform: none;
+  letter-spacing: 0;
+}
+.form-actions { display: flex; justify-content: flex-end; }
+</style>
 {% endblock %}

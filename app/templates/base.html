@@ -3,16 +3,19 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>{% block title %}SnP Checker{% endblock %}</title>
+  <title>{% block title %}SnP Checker · hoichoi{% endblock %}</title>
   <link rel="stylesheet" href="/static/app.css" />
   <script src="https://unpkg.com/htmx.org@2.0.3"></script>
 </head>
 <body>
   <header class="topbar">
-    <a href="/" class="brand">SnP Checker</a>
+    <a href="/" class="brand">
+      <span class="brand-mark"></span>
+      <span>SnP Checker</span>
+    </a>
     <nav>
       {% if user %}
-        <span class="muted">{{ user.email }}</span>
+        <span class="who">{{ user.email }}</span>
         {% if user.is_admin %}<a href="/admin/guidelines">Guidelines</a>{% endif %}
         <a href="/history">History</a>
         <form action="/logout" method="post" style="display:inline">
@@ -21,6 +24,6 @@
       {% endif %}
     </nav>
   </header>
-  <main class="wrap">{% block content %}{% endblock %}</main>
+  <main class="{% block wrap_class %}wrap{% endblock %}">{% block content %}{% endblock %}</main>
 </body>
 </html>

@@ -1,41 +1,122 @@
 {% extends "base.html" %}
-{% block title %}Analyzing — {{ script.filename }}{% endblock %}
+{% block title %}Analyzing · {{ script.filename }}{% endblock %}
+{% block wrap_class %}wrap narrow{% endblock %}
 {% block content %}
-<div class="card" id="status-card">
-  <h1>Analyzing: {{ script.filename }}</h1>
-  <p class="muted">
-    {{ script.text_extracted|length }} characters
-    ({{ script.text_extracted.splitlines()|length }} lines)
-    {% if script.ocr_used %}· extracted via OCR{% endif %}
+<div class="card status-card">
+  <div class="overline">In progress</div>
+  <h1 class="filename">{{ script.filename }}</h1>
+  <p class="muted status-meta">
+    {% if script.text_extracted %}
+      <span class="mono">{{ script.text_extracted|length }}</span> chars
+      · <span class="mono">{{ script.text_extracted.splitlines()|length }}</span> lines
+    {% else %}
+      Preparing the file
+    {% endif %}
+    {% if script.ocr_used %} · <span class="chip">OCR</span>{% endif %}
   </p>
 
-  <div id="running">
-    <div class="spinner"></div>
+  <div id="running" class="running">
+    <div class="progress-ring">
+      <div class="ring-glow"></div>
+      <svg viewBox="0 0 60 60" width="60" height="60">
+        <circle cx="30" cy="30" r="26" fill="none" stroke="var(--hc-surface-4)" stroke-width="4"/>
+        <circle class="ring-arc" cx="30" cy="30" r="26" fill="none" stroke="url(#hcGrad)" stroke-width="4" stroke-linecap="round"/>
+        <defs>
+          <linearGradient id="hcGrad" x1="0" y1="0" x2="60" y2="60" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stop-color="#d20820"/>
+            <stop offset="1" stop-color="#6d0550"/>
+          </linearGradient>
+        </defs>
+      </svg>
+    </div>
+
+    <div class="phases">
+      <div class="phase" data-phase="extracting">
+        <span class="phase-dot"></span>
+        <span class="phase-label">Extract text</span>
+      </div>
+      <div class="phase-sep"></div>
+      <div class="phase" data-phase="running">
+        <span class="phase-dot"></span>
+        <span class="phase-label">Review against guidelines</span>
+      </div>
+      <div class="phase-sep"></div>
+      <div class="phase" data-phase="done">
+        <span class="phase-dot"></span>
+        <span class="phase-label">Deliver findings</span>
+      </div>
+    </div>
+
     <p class="status-line" id="status-label">Preparing…</p>
-    <p class="muted small">Started {{ analysis.created_at.strftime("%H:%M:%S UTC") }} · elapsed <span id="elapsed">0</span>s</p>
+    <p class="muted small">
+      Started <span class="mono">{{ analysis.created_at.strftime("%H:%M:%S UTC") }}</span>
+      · elapsed <span class="mono" id="elapsed">0</span>s
+    </p>
     <p class="muted small">Long scripts take 1–3 minutes. You can leave this page open; work continues on the server.</p>
   </div>
 
-  <div id="failed" style="display:none">
-    <h2 style="color: var(--danger)">Analysis failed</h2>
-    <pre id="error-detail" class="preview"></pre>
-    <a class="btn" href="/">Try another upload</a>
+  <div id="failed" class="failed" hidden>
+    <div class="sev-badge sev-high" style="margin-bottom:12px">Failed</div>
+    <h2>Analysis didn't complete</h2>
+    <pre id="error-detail" class="error-detail"></pre>
+    <a class="btn-primary" href="/">Try another upload</a>
   </div>
 </div>
 
 <style>
-.spinner {
-  width: 32px; height: 32px; border: 3px solid var(--border);
-  border-top-color: var(--accent); border-radius: 50%;
-  animation: spin 0.9s linear infinite; margin: 16px 0;
+.status-card { text-align: center; }
+.status-card .overline { margin-bottom: 10px; }
+.filename { font-size: 22px; word-break: break-all; }
+.status-meta { margin-bottom: 32px; }
+
+.running { display: flex; flex-direction: column; align-items: center; }
+.progress-ring { position: relative; margin: 8px 0 24px; }
+.ring-glow {
+  position: absolute; inset: -8px; border-radius: 50%;
+  background: var(--hc-gradient); filter: blur(20px); opacity: 0.3;
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse { 50% { opacity: 0.6; } }
+.progress-ring svg { position: relative; z-index: 1; }
+.ring-arc {
+  stroke-dasharray: 60 200;
+  transform-origin: center;
+  animation: spin 1.2s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
-.status-line { font-size: 15px; margin: 12px 0 4px; }
+
+.phases {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  margin-bottom: 20px; flex-wrap: wrap;
+}
+.phase {
+  display: flex; align-items: center; gap: 8px;
+  font: 600 12px var(--hc-font-primary); color: var(--hc-text-dim);
+  transition: color 0.2s;
+}
+.phase-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--hc-surface-4); transition: all 0.3s;
+}
+.phase.active { color: var(--hc-text); }
+.phase.active .phase-dot { background: var(--hc-red); box-shadow: 0 0 0 4px rgba(210,8,32,0.20); }
+.phase.done { color: var(--hc-text-muted); }
+.phase.done .phase-dot { background: var(--hc-velvet); }
+.phase-sep { width: 24px; height: 2px; background: var(--hc-surface-4); border-radius: 1px; }
+
+.status-line {
+  font: 600 15px var(--hc-font-primary);
+  color: var(--hc-text); margin: 8px 0 4px;
+}
 .small { font-size: 12px; }
-.preview {
-  background: #0b0d12; border: 1px solid var(--border); border-radius: 8px;
-  padding: 12px; white-space: pre-wrap; font: 13px/1.5 ui-monospace, monospace;
-  color: var(--danger);
+
+.failed { text-align: left; }
+.failed h2 { margin-bottom: 12px; }
+.error-detail {
+  background: rgba(210,8,32,0.10); border: 1px solid rgba(210,8,32,0.35);
+  color: #ff8a97; padding: 12px 14px; border-radius: var(--hc-radius-sm);
+  font: 400 12px/1.6 var(--hc-font-mono); white-space: pre-wrap; word-break: break-word;
+  margin: 0 0 20px;
 }
 </style>
 
@@ -54,19 +135,30 @@ const labels = {
   done: 'Done, redirecting…',
   error: 'Failed',
 };
+const PHASE_ORDER = ['extracting', 'running', 'done'];
+
+function applyPhase(state) {
+  const idx = PHASE_ORDER.indexOf(state);
+  document.querySelectorAll('.phase').forEach((el, i) => {
+    el.classList.remove('active', 'done');
+    if (i < idx) el.classList.add('done');
+    else if (i === idx) el.classList.add('active');
+  });
+}
 
 async function poll() {
   try {
     const r = await fetch(statusUrl);
     const j = await r.json();
     document.getElementById('status-label').textContent = labels[j.status] || j.status;
+    applyPhase(j.status);
     if (j.status === 'done' && j.result_url) {
       window.location.href = j.result_url;
       return;
     }
     if (j.status === 'error') {
-      document.getElementById('running').style.display = 'none';
-      document.getElementById('failed').style.display = 'block';
+      document.getElementById('running').hidden = true;
+      document.getElementById('failed').hidden = false;
       document.getElementById('error-detail').textContent = j.error || 'Unknown error';
       return;
     }
@@ -75,6 +167,7 @@ async function poll() {
   }
   setTimeout(poll, 3000);
 }
+applyPhase('extracting');
 setTimeout(poll, 1000);
 </script>
 {% endblock %}

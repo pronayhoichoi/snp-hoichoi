@@ -1,12 +1,141 @@
 {% extends "base.html" %}
-{% block title %}Dashboard — SnP Checker{% endblock %}
+{% block title %}Dashboard · SnP Checker{% endblock %}
 {% block content %}
+<div class="hero-block">
+  <div class="overline">Standards &amp; Practices</div>
+  <h1>Review a script</h1>
+  <p class="lede">Upload a script and let the reviewer flag anything that pushes past your S&amp;P guidelines. You'll get an annotated <span class="mono">.docx</span> with native Word comments for every flagged line.</p>
+</div>
+
+<div class="section-head"><h2>Upload</h2></div>
 <div class="card">
-  <h1>Upload a script</h1>
-  <p class="muted">PDF, DOCX, or TXT. Max 20 MB. Bengali & English supported (OCR fallback for scanned PDFs).</p>
-  <form method="post" action="/scripts/upload" enctype="multipart/form-data">
-    <input type="file" name="file" accept=".pdf,.docx,.txt" required />
-    <button type="submit" class="primary">Analyze</button>
+  <form method="post" action="/scripts/upload" enctype="multipart/form-data" class="upload-form">
+    <label class="dropzone" id="dropzone">
+      <input type="file" name="file" id="file-input" accept=".pdf,.docx,.txt" required hidden />
+      <div class="dz-icon">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/>
+          <line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+      </div>
+      <div class="dz-title">Click to choose a file, or drag &amp; drop</div>
+      <div class="dz-sub">PDF, DOCX, or TXT · up to 20 MB · Bengali &amp; English (OCR for scanned PDFs)</div>
+      <div class="dz-filename mono" id="filename" hidden></div>
+    </label>
+    <div class="upload-actions">
+      <button type="submit" class="primary" id="analyze-btn" disabled>
+        Analyze
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </button>
+    </div>
   </form>
 </div>
+
+<div class="section-head"><h2>How it works</h2></div>
+<div class="steps">
+  <div class="step">
+    <div class="step-num">01</div>
+    <h3>Upload</h3>
+    <p class="muted">Drop the script in — screenplay or scene doc, any of PDF, DOCX, TXT.</p>
+  </div>
+  <div class="step">
+    <div class="step-num">02</div>
+    <h3>Review</h3>
+    <p class="muted">The reviewer reads every line against your S&amp;P guidelines and flags issues.</p>
+  </div>
+  <div class="step">
+    <div class="step-num">03</div>
+    <h3>Deliver</h3>
+    <p class="muted">Download the annotated <span class="mono">.docx</span> — findings appear as native Word comments.</p>
+  </div>
+</div>
+
+<style>
+.hero-block { margin-bottom: 8px; }
+.hero-block .overline { margin-bottom: 12px; }
+.hero-block h1 {
+  background: var(--hc-gradient);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+  display: inline-block; padding-right: 4px;
+}
+.lede { color: var(--hc-text-muted); font-size: 16px; max-width: 640px; margin-top: 12px; }
+
+.upload-form { display: flex; flex-direction: column; gap: 20px; }
+.dropzone {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 40px 24px; text-align: center;
+  border: 2px dashed var(--hc-surface-4); border-radius: var(--hc-radius-md);
+  background: var(--hc-surface-1);
+  cursor: pointer; transition: all 0.15s;
+  margin: 0;
+}
+.dropzone:hover, .dropzone.drag {
+  border-color: var(--hc-red); background: rgba(210,8,32,0.05);
+}
+.dropzone.filled { border-style: solid; border-color: var(--hc-red); background: rgba(210,8,32,0.06); }
+.dz-icon { color: var(--hc-text-muted); margin-bottom: 12px; }
+.dropzone:hover .dz-icon, .dropzone.filled .dz-icon { color: var(--hc-red); }
+.dz-title { font-family: var(--hc-font-primary); font-weight: 700; font-size: 15px; margin-bottom: 4px; }
+.dz-sub { color: var(--hc-text-muted); font-size: 12px; }
+.dz-filename { color: var(--hc-red); margin-top: 10px; font-size: 13px; word-break: break-all; }
+.upload-actions { display: flex; justify-content: flex-end; }
+button.primary:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
+
+.steps {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px;
+}
+.step {
+  background: var(--hc-surface-2); border: 1px solid var(--hc-surface-3);
+  border-radius: var(--hc-radius-md); padding: 24px;
+}
+.step-num {
+  font-family: var(--hc-font-mono); font-size: 12px; color: var(--hc-red);
+  margin-bottom: 12px; letter-spacing: 0.1em;
+}
+.step h3 { font-size: 15px; margin-bottom: 4px; }
+.step p { margin: 0; font-size: 13px; }
+@media (max-width: 720px) { .steps { grid-template-columns: 1fr; } }
+</style>
+
+<script>
+(function() {
+  const input = document.getElementById('file-input');
+  const dz = document.getElementById('dropzone');
+  const nameEl = document.getElementById('filename');
+  const btn = document.getElementById('analyze-btn');
+
+  function showName(name) {
+    if (name) {
+      nameEl.hidden = false;
+      nameEl.textContent = name;
+      dz.classList.add('filled');
+      btn.disabled = false;
+    } else {
+      nameEl.hidden = true;
+      dz.classList.remove('filled');
+      btn.disabled = true;
+    }
+  }
+
+  input.addEventListener('change', () => {
+    showName(input.files && input.files[0] ? input.files[0].name : '');
+  });
+
+  ['dragenter','dragover'].forEach(ev => dz.addEventListener(ev, e => {
+    e.preventDefault(); e.stopPropagation(); dz.classList.add('drag');
+  }));
+  ['dragleave','drop'].forEach(ev => dz.addEventListener(ev, e => {
+    e.preventDefault(); e.stopPropagation(); dz.classList.remove('drag');
+  }));
+  dz.addEventListener('drop', e => {
+    const files = e.dataTransfer && e.dataTransfer.files;
+    if (files && files.length) {
+      input.files = files;
+      showName(files[0].name);
+    }
+  });
+})();
+</script>
 {% endblock %}

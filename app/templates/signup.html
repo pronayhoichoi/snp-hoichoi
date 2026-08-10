@@ -1,15 +1,21 @@
 {% extends "base.html" %}
-{% block title %}Sign up — SnP Checker{% endblock %}
+{% block title %}Sign up · SnP Checker{% endblock %}
+{% block wrap_class %}hero-auth{% endblock %}
 {% block content %}
-<div class="card narrow">
+<div class="auth-card">
+  <div class="overline">Join the team</div>
   <h1>Create account</h1>
-  {% if error %}<p class="error">{{ error }}</p>{% endif %}
+  <p class="auth-sub">The first account becomes admin and can edit guidelines.</p>
+  {% if error %}<div class="error">{{ error }}</div>{% endif %}
   <form method="post" action="/signup">
-    <label>Email<input type="email" name="email" required autofocus /></label>
-    <label>Password<input type="password" name="password" minlength="8" required /></label>
-    <button type="submit" class="primary">Sign up</button>
+    <label>Email
+      <input type="email" name="email" required autofocus autocomplete="email" placeholder="you@hoichoi.tv" />
+    </label>
+    <label>Password
+      <input type="password" name="password" minlength="8" required autocomplete="new-password" placeholder="8+ characters" />
+    </label>
+    <button type="submit" class="primary wide">Sign up</button>
   </form>
-  <p class="muted">The first account created becomes admin.</p>
-  <p class="muted"><a href="/login">Back to log in</a></p>
+  <div class="foot">Already have an account? <a href="/login">Log in</a></div>
 </div>
 {% endblock %}
