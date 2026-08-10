@@ -19,7 +19,7 @@ log = logging.getLogger(__name__)
 
 CHUNK_LINES = 500          # ~20 pages of a typical script
 CHUNK_OVERLAP = 20         # lines shared between adjacent chunks to catch violations that span the boundary
-MAX_PARALLEL = 4           # concurrent chunk calls
+MAX_PARALLEL = 2           # concurrent chunk calls (keep memory low on small containers)
 PER_CHUNK_MAX_TOKENS = 4000
 
 SYSTEM_PROMPT = """You are a Standards & Practices (S&P) reviewer for an OTT streaming platform's content team.

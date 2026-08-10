@@ -11,9 +11,9 @@
 
   <div id="running">
     <div class="spinner"></div>
-    <p class="status-line">Running S&amp;P review — this can take 1–3 minutes for long scripts.</p>
+    <p class="status-line" id="status-label">Preparing…</p>
     <p class="muted small">Started {{ analysis.created_at.strftime("%H:%M:%S UTC") }} · elapsed <span id="elapsed">0</span>s</p>
-    <p class="muted small">You can safely leave this page open in another tab; the analysis runs on the server.</p>
+    <p class="muted small">Long scripts take 1–3 minutes. You can leave this page open; work continues on the server.</p>
   </div>
 
   <div id="failed" style="display:none">
@@ -48,10 +48,18 @@ function tickElapsed() {
 }
 setInterval(tickElapsed, 1000);
 
+const labels = {
+  extracting: 'Extracting text from the file…',
+  running: 'Reviewing against S&P guidelines…',
+  done: 'Done, redirecting…',
+  error: 'Failed',
+};
+
 async function poll() {
   try {
     const r = await fetch(statusUrl);
     const j = await r.json();
+    document.getElementById('status-label').textContent = labels[j.status] || j.status;
     if (j.status === 'done' && j.result_url) {
       window.location.href = j.result_url;
       return;
@@ -67,6 +75,6 @@ async function poll() {
   }
   setTimeout(poll, 3000);
 }
-setTimeout(poll, 2000);
+setTimeout(poll, 1000);
 </script>
 {% endblock %}

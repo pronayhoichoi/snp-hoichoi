@@ -47,58 +47,85 @@ async def upload(
     if ext not in ALLOWED_EXT:
         raise HTTPException(400, f"Unsupported file type: {ext}")
 
-    data = await file.read()
-    max_bytes = settings.max_upload_mb * 1024 * 1024
-    if len(data) > max_bytes:
-        raise HTTPException(400, f"File exceeds {settings.max_upload_mb} MB limit")
+    guideline = _active_guideline(db)
+    if not guideline:
+        raise HTTPException(400, "No S&P guidelines have been set. Ask an admin to add them.")
 
+    max_bytes = settings.max_upload_mb * 1024 * 1024
     upload_dir = Path(settings.storage_dir) / "uploads"
     upload_dir.mkdir(parents=True, exist_ok=True)
     stored_name = f"{uuid.uuid4().hex}{ext}"
     stored_path = upload_dir / stored_name
-    stored_path.write_bytes(data)
 
-    try:
-        text, ocr_used = extract(str(stored_path), file.content_type or "")
-    except Exception as e:
-        os.unlink(stored_path)
-        raise HTTPException(400, f"Extraction failed: {e}") from e
-
-    if not text.strip():
-        os.unlink(stored_path)
-        raise HTTPException(400, "No text could be extracted from this file")
+    total = 0
+    with open(stored_path, "wb") as f:
+        while chunk := await file.read(1024 * 1024):
+            total += len(chunk)
+            if total > max_bytes:
+                f.close()
+                os.unlink(stored_path)
+                raise HTTPException(400, f"File exceeds {settings.max_upload_mb} MB limit")
+            f.write(chunk)
 
     script = Script(
         user_id=user.id,
         filename=filename,
         mime=file.content_type or "",
         storage_path=str(stored_path),
-        text_extracted=text,
-        ocr_used=ocr_used,
+        text_extracted="",
+        ocr_used=False,
     )
     db.add(script)
     db.commit()
     db.refresh(script)
 
-    return RedirectResponse(f"/scripts/{script.id}/analyze", status_code=302)
+    analysis = Analysis(
+        script_id=script.id,
+        guideline_id=guideline.id,
+        status="extracting",
+    )
+    db.add(analysis)
+    db.commit()
+    db.refresh(analysis)
+
+    threading.Thread(
+        target=_process_bg,
+        args=(script.id, analysis.id, guideline.content_text, file.content_type or ""),
+        daemon=True,
+    ).start()
+
+    return RedirectResponse(f"/scripts/{script.id}/status/{analysis.id}", status_code=302)
 
 
-def _run_analysis_bg(analysis_id: int, script_text: str, guidelines_text: str) -> None:
+def _process_bg(script_id: int, analysis_id: int, guidelines_text: str, mime: str) -> None:
+    """Do extract() and analyze() off the request thread so the HTTP response
+    returns immediately regardless of file size."""
     db = SessionLocal()
     try:
+        script = db.get(Script, script_id)
         analysis = db.get(Analysis, analysis_id)
-        if not analysis:
-            log.error("bg: analysis %d missing", analysis_id)
+        if not script or not analysis:
+            log.error("bg: script %s / analysis %s missing", script_id, analysis_id)
             return
+
         try:
-            log.info("bg: starting analysis %d", analysis_id)
-            result = analyze(script_text, guidelines_text)
+            log.info("bg: extracting script %d (%s)", script.id, script.filename)
+            text, ocr_used = extract(script.storage_path, mime)
+            if not text.strip():
+                raise ValueError("No text could be extracted from this file")
+            script.text_extracted = text
+            script.ocr_used = ocr_used
+            analysis.status = "running"
+            db.commit()
+            log.info("bg: extracted %d chars from script %d, starting analysis", len(text), script.id)
+
+            result = analyze(text, guidelines_text)
             analysis.findings_json = result
             analysis.status = "done"
             analysis.completed_at = datetime.utcnow()
-            log.info("bg: analysis %d done, %d findings", analysis_id, len(result.get("findings", [])))
+            log.info("bg: analysis %d done, %d findings", analysis.id, len(result.get("findings", [])))
         except Exception as e:
-            log.exception("bg: analysis %d failed", analysis_id)
+            log.exception("bg: script %d / analysis %d failed", script_id, analysis_id)
             analysis.status = "error"
             analysis.error = str(e)[:2000]
         db.commit()
@@ -107,54 +134,26 @@ def _run_analysis_bg(analysis_id: int, script_text: str, guidelines_text: str) -
 
 
 @router.get("/{script_id}/analyze")
-def start_analysis(
+def analyze_alias(
     script_id: int,
-    request: Request,
     user: User = Depends(require_user),
     db: Session = Depends(get_db),
 ):
+    """Legacy redirect: uploads now go straight to /status; find latest for this script."""
     script = db.get(Script, script_id)
     if not script or script.user_id != user.id:
         raise HTTPException(404)
-
-    guideline = _active_guideline(db)
-    if not guideline:
-        raise HTTPException(400, "No S&P guidelines have been set. Ask an admin to add them.")
-
-    done = (
+    latest = (
         db.query(Analysis)
-        .filter(Analysis.script_id == script.id, Analysis.status == "done")
+        .filter(Analysis.script_id == script.id)
         .order_by(Analysis.created_at.desc())
         .first()
     )
-    if done:
-        return RedirectResponse(f"/scripts/{script.id}/result/{done.id}", status_code=302)
-
-    running = (
-        db.query(Analysis)
-        .filter(Analysis.script_id == script.id, Analysis.status == "running")
-        .order_by(Analysis.created_at.desc())
-        .first()
-    )
-    if running:
-        return RedirectResponse(f"/scripts/{script.id}/status/{running.id}", status_code=302)
-
-    analysis = Analysis(
-        script_id=script.id,
-        guideline_id=guideline.id,
-        status="running",
-    )
-    db.add(analysis)
-    db.commit()
-    db.refresh(analysis)
-
-    threading.Thread(
-        target=_run_analysis_bg,
-        args=(analysis.id, script.text_extracted, guideline.content_text),
-        daemon=True,
-    ).start()
-
-    return RedirectResponse(f"/scripts/{script.id}/status/{analysis.id}", status_code=302)
+    if not latest:
+        raise HTTPException(404, "No analysis for this script")
+    if latest.status == "done":
+        return RedirectResponse(f"/scripts/{script.id}/result/{latest.id}", status_code=302)
+    return RedirectResponse(f"/scripts/{script.id}/status/{latest.id}", status_code=302)
 
 
 @router.get("/{script_id}/status/{analysis_id}", response_class=HTMLResponse)
