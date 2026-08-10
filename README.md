@@ -1,6 +1,6 @@
 # SnP Checker
 
-Standards & Practices script review tool for OTT content teams. Upload a script (PDF / DOCX / TXT), Claude checks it against your S&P guidelines, and you get back an annotated `.docx` with native Word comments on every flagged line.
+Standards & Practices script review tool for OTT content teams. Upload a script (PDF / DOCX / TXT), an LLM checks it against your S&P guidelines, and you get back an annotated `.docx` with native Word comments on every flagged line.
 
 ## Features
 
@@ -15,14 +15,14 @@ Standards & Practices script review tool for OTT content teams. Upload a script 
 
 ## Stack
 
-FastAPI · Jinja2 · HTMX · SQLAlchemy · Postgres (SQLite in dev) · Anthropic Claude · Tesseract OCR · python-docx
+FastAPI · Jinja2 · HTMX · SQLAlchemy · Postgres (SQLite in dev) · OpenAI (gpt-4o) · Tesseract OCR · python-docx
 
 ## Local dev
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env   # then edit ANTHROPIC_API_KEY
+cp .env.example .env   # then edit OPENAI_API_KEY
 # macOS system deps for OCR:
 brew install tesseract tesseract-lang poppler
 uvicorn app.main:app --reload
@@ -36,9 +36,9 @@ Open http://localhost:8000 · sign up (first account becomes admin) · go to **G
 2. In Railway: **New Project → Deploy from GitHub** → pick the repo.
 3. Add a **Postgres** service; Railway sets `DATABASE_URL` for you.
 4. Add env vars on the app service:
-   - `ANTHROPIC_API_KEY` — your key
+   - `OPENAI_API_KEY` — your key
    - `SESSION_SECRET` — long random string
-   - `ANTHROPIC_MODEL` — e.g. `claude-sonnet-5` (default)
+   - `OPENAI_MODEL` — e.g. `gpt-4o` (default)
 5. Railway detects `railway.json` + `Dockerfile` and builds. Health check hits `/healthz`.
 6. Add a volume mounted at `/app/storage` if you want uploads to survive deploys.
 
@@ -48,8 +48,8 @@ Open http://localhost:8000 · sign up (first account becomes admin) · go to **G
 |---|---|---|
 | `DATABASE_URL` | `sqlite:///./snp.db` | Postgres URL in prod |
 | `SESSION_SECRET` | `dev-secret-change-me` | change in prod |
-| `ANTHROPIC_API_KEY` | — | required |
-| `ANTHROPIC_MODEL` | `claude-sonnet-5` | |
+| `OPENAI_API_KEY` | — | required |
+| `OPENAI_MODEL` | `gpt-4o` | |
 | `STORAGE_DIR` | `./storage` | uploads + outputs |
 | `MAX_UPLOAD_MB` | `20` | |
 
@@ -68,7 +68,7 @@ app/
 │   └── admin_routes.py   # /admin/guidelines
 ├── services/
 │   ├── extract.py        # PDF/DOCX/TXT + OCR
-│   ├── analyzer.py       # Claude call, structured JSON out
+│   ├── analyzer.py       # OpenAI call, structured JSON out
 │   └── docx_writer.py    # annotated .docx with native comments
 ├── templates/       # Jinja2
 └── static/          # CSS

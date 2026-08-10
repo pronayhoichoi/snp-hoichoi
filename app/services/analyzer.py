@@ -1,11 +1,11 @@
-"""Claude-powered S&P analysis. Numbers script lines, sends with guidelines,
+"""OpenAI-powered S&P analysis. Numbers script lines, sends with guidelines,
 gets back structured findings JSON."""
 from __future__ import annotations
 
 import json
 from typing import Any
 
-from anthropic import Anthropic
+from openai import OpenAI
 
 from app.config import settings
 
@@ -43,7 +43,7 @@ Rules:
 
 def analyze(script_text: str, guidelines_text: str) -> dict[str, Any]:
     numbered = _number_lines(script_text)
-    client = Anthropic(api_key=settings.anthropic_api_key)
+    client = OpenAI(api_key=settings.openai_api_key)
 
     user_msg = (
         f"=== S&P GUIDELINES ===\n{guidelines_text}\n\n"
@@ -51,13 +51,16 @@ def analyze(script_text: str, guidelines_text: str) -> dict[str, Any]:
         "Return the JSON findings object now."
     )
 
-    resp = client.messages.create(
-        model=settings.anthropic_model,
+    resp = client.chat.completions.create(
+        model=settings.openai_model,
         max_tokens=8000,
-        system=SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": user_msg}],
+        response_format={"type": "json_object"},
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": user_msg},
+        ],
     )
-    raw = "".join(b.text for b in resp.content if getattr(b, "type", None) == "text")
+    raw = resp.choices[0].message.content or ""
     return _parse_json(raw)
 
 
