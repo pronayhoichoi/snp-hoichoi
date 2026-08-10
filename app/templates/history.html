@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}History — SnP Checker{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>Your uploads</h1>
+  {% if not rows %}
+    <p class="muted">Nothing yet. <a href="/">Upload a script</a>.</p>
+  {% else %}
+    <table class="history">
+      <thead>
+        <tr>
+          <th>File</th>
+          <th>Uploaded</th>
+          <th>Findings</th>
+          <th>Severity</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+        <tr>
+          <td>{{ r.script.filename }}{% if r.script.ocr_used %} <span class="chip">OCR</span>{% endif %}</td>
+          <td class="muted">{{ r.script.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
+          <td>{{ r.total }}</td>
+          <td>
+            {% if r.high %}<span class="sev-badge sev-high">{{ r.high }} high</span>{% endif %}
+            {% if r.med %}<span class="sev-badge sev-medium">{{ r.med }} med</span>{% endif %}
+            {% if r.low %}<span class="sev-badge sev-low">{{ r.low }} low</span>{% endif %}
+          </td>
+          <td>
+            {% if r.analysis %}
+              <a href="/scripts/{{ r.script.id }}/result/{{ r.analysis.id }}">View</a>
+              · <a href="/scripts/{{ r.script.id }}/download/{{ r.analysis.id }}">.docx</a>
+            {% else %}
+              <span class="muted">no analysis</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+</div>
+<style>
+.history { width: 100%; border-collapse: collapse; }
+.history th, .history td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--border); font-size: 13px; }
+.history th { color: var(--muted); text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; }
+.chip { font-size: 10px; padding: 2px 6px; background: rgba(110, 168, 255, 0.15); color: var(--accent); border-radius: 999px; margin-left: 4px; }
+.sev-badge { font-size: 10px; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; margin-right: 4px; }
+.sev-badge.sev-high { background: rgba(255, 107, 107, 0.2); color: var(--danger); }
+.sev-badge.sev-medium { background: rgba(245, 165, 36, 0.2); color: var(--warn); }
+.sev-badge.sev-low { background: rgba(154, 161, 173, 0.2); color: var(--muted); }
+</style>
+{% endblock %}

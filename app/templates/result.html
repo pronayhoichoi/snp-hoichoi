@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}Result — {{ script.filename }}{% endblock %}
+{% block content %}
+<div class="result-header">
+  <div>
+    <h1>{{ script.filename }}</h1>
+    <p class="muted">
+      {{ findings|length }} finding{{ '' if findings|length == 1 else 's' }}
+      · analyzed {{ analysis.completed_at.strftime("%Y-%m-%d %H:%M UTC") if analysis.completed_at else "—" }}
+      {% if script.ocr_used %}· OCR{% endif %}
+    </p>
+  </div>
+  <div class="actions">
+    <a class="btn" href="/scripts/{{ script.id }}/download/{{ analysis.id }}">Download annotated .docx</a>
+  </div>
+</div>
+
+<div class="result-grid">
+  <section class="script-pane">
+    {% for line in lines %}
+      {% set lno = loop.index %}
+      {% set flags = flags_by_line.get(lno, []) %}
+      {% if flags %}
+        {% set sev = flags[0].severity %}
+        <div class="line flagged sev-{{ sev }}" id="line-{{ lno }}">
+          <span class="lno">{{ lno }}</span>
+          <span class="txt">{{ line }}</span>
+          <span class="tag">{{ sev }}</span>
+        </div>
+      {% else %}
+        <div class="line" id="line-{{ lno }}">
+          <span class="lno">{{ lno }}</span>
+          <span class="txt">{{ line }}</span>
+        </div>
+      {% endif %}
+    {% endfor %}
+  </section>
+
+  <aside class="findings-pane">
+    <h2>Findings</h2>
+    {% if not findings %}
+      <p class="muted">No violations flagged. Nice.</p>
+    {% endif %}
+    {% for f in findings %}
+      <div class="finding sev-{{ f.severity }}" onclick="jumpTo({{ f.line_start }})">
+        <div class="finding-head">
+          <span class="sev-badge sev-{{ f.severity }}">{{ f.severity }}</span>
+          <span class="lines">L{{ f.line_start }}{% if f.line_end != f.line_start %}–L{{ f.line_end }}{% endif %}</span>
+        </div>
+        <div class="ref">{{ f.guideline_ref }}</div>
+        <div class="reason">{{ f.reason }}</div>
+        {% if f.suggestion %}<div class="sugg"><em>Fix:</em> {{ f.suggestion }}</div>{% endif %}
+      </div>
+    {% endfor %}
+  </aside>
+</div>
+
+<script>
+function jumpTo(ln) {
+  const el = document.getElementById('line-' + ln);
+  if (!el) return;
+  el.scrollIntoView({behavior: 'smooth', block: 'center'});
+  el.classList.add('pulse');
+  setTimeout(() => el.classList.remove('pulse'), 1200);
+}
+</script>
+
+<style>
+.result-header { display: flex; justify-content: space-between; align-items: end; margin-bottom: 16px; gap: 16px; flex-wrap: wrap; }
+.result-header h1 { margin: 0; }
+.btn { background: var(--panel); border: 1px solid var(--border); padding: 8px 14px; border-radius: 8px; color: var(--text); }
+.btn:hover { border-color: var(--accent); text-decoration: none; }
+.result-grid { display: grid; grid-template-columns: 1fr 380px; gap: 16px; align-items: start; }
+.script-pane {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+  padding: 16px; max-height: 78vh; overflow: auto;
+  font: 14px/1.7 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.line { display: grid; grid-template-columns: 44px 1fr auto; gap: 8px; padding: 2px 6px; border-radius: 4px; }
+.line .lno { color: var(--muted); text-align: right; user-select: none; }
+.line.flagged { padding: 4px 6px; }
+.line.flagged.sev-high { background: rgba(255, 107, 107, 0.14); border-left: 3px solid var(--danger); }
+.line.flagged.sev-medium { background: rgba(245, 165, 36, 0.14); border-left: 3px solid var(--warn); }
+.line.flagged.sev-low { background: rgba(154, 161, 173, 0.14); border-left: 3px solid var(--muted); }
+.line .tag { font-size: 10px; text-transform: uppercase; color: var(--muted); align-self: center; }
+.line.pulse { outline: 2px solid var(--accent); }
+
+.findings-pane {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+  padding: 16px; max-height: 78vh; overflow: auto;
+}
+.findings-pane h2 { margin: 0 0 12px; font-size: 15px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); }
+.finding {
+  padding: 12px; border: 1px solid var(--border); border-radius: 8px;
+  margin-bottom: 10px; cursor: pointer; background: #0b0d12;
+}
+.finding:hover { border-color: var(--accent); }
+.finding.sev-high { border-left: 3px solid var(--danger); }
+.finding.sev-medium { border-left: 3px solid var(--warn); }
+.finding.sev-low { border-left: 3px solid var(--muted); }
+.finding-head { display: flex; justify-content: space-between; margin-bottom: 6px; }
+.sev-badge { font-size: 10px; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; }
+.sev-badge.sev-high { background: rgba(255, 107, 107, 0.2); color: var(--danger); }
+.sev-badge.sev-medium { background: rgba(245, 165, 36, 0.2); color: var(--warn); }
+.sev-badge.sev-low { background: rgba(154, 161, 173, 0.2); color: var(--muted); }
+.finding .lines { color: var(--muted); font-family: ui-monospace, monospace; font-size: 12px; }
+.finding .ref { font-size: 12px; color: var(--accent); margin-bottom: 4px; }
+.finding .reason { font-size: 13px; margin-bottom: 6px; }
+.finding .sugg { font-size: 12px; color: var(--muted); }
+
+@media (max-width: 900px) { .result-grid { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}

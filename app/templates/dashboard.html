@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — SnP Checker{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>Upload a script</h1>
+  <p class="muted">PDF, DOCX, or TXT. Max 20 MB. Bengali & English supported (OCR fallback for scanned PDFs).</p>
+  <form method="post" action="/scripts/upload" enctype="multipart/form-data">
+    <input type="file" name="file" accept=".pdf,.docx,.txt" required />
+    <button type="submit" class="primary">Analyze</button>
+  </form>
+</div>
+{% endblock %}

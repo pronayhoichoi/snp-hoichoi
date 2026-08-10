@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Guidelines — Admin{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>S&amp;P Guidelines</h1>
+  <p class="muted">
+    {% if current %}
+      Active version: <strong>v{{ current.version }}</strong> — updated {{ current.created_at.strftime("%Y-%m-%d %H:%M UTC") }}
+    {% else %}
+      No guidelines set yet. Paste them below.
+    {% endif %}
+  </p>
+  <form method="post" action="/admin/guidelines">
+    <label>Guidelines text (Markdown or plain text)
+      <textarea name="content_text" rows="24" required>{{ current.content_text if current else "" }}</textarea>
+    </label>
+    <button type="submit" class="primary">Save new version</button>
+  </form>
+</div>
+{% endblock %}

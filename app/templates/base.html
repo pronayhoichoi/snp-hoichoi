@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>{% block title %}SnP Checker{% endblock %}</title>
+  <link rel="stylesheet" href="/static/app.css" />
+  <script src="https://unpkg.com/htmx.org@2.0.3"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a href="/" class="brand">SnP Checker</a>
+    <nav>
+      {% if user %}
+        <span class="muted">{{ user.email }}</span>
+        {% if user.is_admin %}<a href="/admin/guidelines">Guidelines</a>{% endif %}
+        <a href="/history">History</a>
+        <form action="/logout" method="post" style="display:inline">
+          <button class="linkbtn" type="submit">Log out</button>
+        </form>
+      {% endif %}
+    </nav>
+  </header>
+  <main class="wrap">{% block content %}{% endblock %}</main>
+</body>
+</html>

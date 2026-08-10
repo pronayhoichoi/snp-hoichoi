@@ -1,0 +1,49 @@
+:root {
+  --bg: #0f1115;
+  --panel: #171a21;
+  --border: #262a33;
+  --text: #e6e7ea;
+  --muted: #9aa1ad;
+  --accent: #6ea8ff;
+  --danger: #ff6b6b;
+  --warn: #f5a524;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 24px; border-bottom: 1px solid var(--border);
+}
+.topbar .brand { font-weight: 700; font-size: 18px; color: var(--text); }
+.topbar nav { display: flex; gap: 16px; align-items: center; }
+.wrap { max-width: 960px; margin: 32px auto; padding: 0 24px; }
+.card {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 12px; padding: 24px; margin-bottom: 16px;
+}
+.card.narrow { max-width: 400px; margin: 64px auto; }
+h1 { margin: 0 0 16px; font-size: 22px; }
+form label { display: block; margin-bottom: 12px; font-size: 13px; color: var(--muted); }
+form input[type=email], form input[type=password], form input[type=text], form textarea {
+  display: block; width: 100%; margin-top: 4px; padding: 10px 12px;
+  background: #0b0d12; border: 1px solid var(--border); border-radius: 8px;
+  color: var(--text); font: inherit;
+}
+form input[type=file] { margin: 8px 0 16px; color: var(--muted); }
+button.primary {
+  background: var(--accent); color: #0b0d12; border: 0;
+  padding: 10px 16px; border-radius: 8px; font-weight: 600; cursor: pointer;
+}
+button.primary:hover { filter: brightness(1.1); }
+button.linkbtn {
+  background: transparent; border: 0; color: var(--accent); cursor: pointer; padding: 0; font: inherit;
+}
+.muted { color: var(--muted); font-size: 13px; }
+.error { color: var(--danger); margin: 0 0 12px; }

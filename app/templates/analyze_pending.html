@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Analyzing — SnP Checker{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>Uploaded: {{ script.filename }}</h1>
+  <p class="muted">
+    Extracted {{ script.text_extracted|length }} characters
+    {% if script.ocr_used %}(via OCR — scanned PDF){% endif %}.
+  </p>
+  <p class="muted">LLM analysis wiring lands in M3. Preview below:</p>
+  <pre class="preview">{{ script.text_extracted[:2000] }}{% if script.text_extracted|length > 2000 %}…{% endif %}</pre>
+</div>
+<style>
+.preview {
+  background: #0b0d12; border: 1px solid var(--border); border-radius: 8px;
+  padding: 16px; max-height: 60vh; overflow: auto; white-space: pre-wrap;
+  font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+</style>
+{% endblock %}
