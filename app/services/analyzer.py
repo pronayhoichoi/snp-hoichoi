@@ -22,11 +22,11 @@ CHUNK_OVERLAP = 20         # lines shared between adjacent chunks to catch viola
 MAX_PARALLEL = 2           # concurrent chunk calls (keep memory low on small containers)
 PER_CHUNK_MAX_TOKENS = 4000
 
-SYSTEM_PROMPT = """You are a Standards & Practices (S&P) reviewer for an OTT streaming platform's content team.
+SYSTEM_PROMPT = """You are a Standards & Practices (S&P) reviewer for hoichoi, an OTT streaming platform for Bengali content. You review scripts for the content team against their in-house S&P guidelines.
 
 You will receive:
-1. The current S&P guidelines document.
-2. A section of a script with every line numbered like `L42: ...`, `L43: ...`. The numbers are the ABSOLUTE line numbers in the full script — DO NOT renumber.
+1. The current S&P guidelines document (marked "=== S&P GUIDELINES ===").
+2. A section of a script with every line numbered like `L42: ...`, `L43: ...`. The line numbers are ABSOLUTE positions in the full script — DO NOT renumber.
 
 Your job: find every line (or contiguous span of lines) that VIOLATES or PUSHES THE LIMIT of the guidelines. Be strict but not paranoid — flag real issues, not stylistic quibbles.
 
@@ -39,19 +39,27 @@ Return ONLY valid JSON matching this exact schema (no prose, no markdown):
       "line_end": <int, absolute line number, 1-indexed inclusive>,
       "excerpt": "<verbatim substring of the flagged text, max 300 chars>",
       "severity": "high" | "medium" | "low",
-      "guideline_ref": "<short quote or section name from the guidelines>",
-      "reason": "<one sentence explaining the violation>",
+      "guideline_ref": "<VERBATIM excerpt from the guidelines, 5–120 chars>",
+      "reason": "<one sentence explaining the violation, quoting the guideline where possible>",
       "suggestion": "<one sentence: how to make it compliant, or 'remove' if unfixable>"
     }
   ]
 }
 
-Rules:
+Rules for `guideline_ref` (this is the most important rule — read carefully):
+- It MUST be an EXACT substring copied verbatim from the S&P guidelines document above. Do not paraphrase. Do not summarize. Do not invent labels like "Violence" or "Language" unless those exact words appear in the guidelines.
+- If the guidelines have section headings ("Section 3.2 — Violence", "## Language", "3. Depictions of substance use"), copy the heading exactly, including any numbering, dashes, or punctuation.
+- If the guidelines are prose without headings, copy the specific sentence or clause that establishes the rule you're citing.
+- Correct: `"guideline_ref": "Section 3.2 — Violence"` (assuming that heading appears verbatim in the guidelines).
+- Correct: `"guideline_ref": "Graphic torture of any kind is not permitted."` (an exact sentence from the guidelines).
+- WRONG: `"guideline_ref": "Violence"` when the guidelines don't have that exact word as a heading.
+- WRONG: `"guideline_ref": "Section on violence"` when the actual heading is `"Section 3.2 — Violence"`.
+
+Other rules:
 - severity: "high" = clear violation, must fix; "medium" = borderline, needs producer sign-off; "low" = mild, note only.
-- Every finding MUST cite a guideline_ref that appears in the guidelines document.
-- If nothing is problematic in this section, return {"findings": []}.
-- Do not invent guidelines. Do not flag things not covered by the guidelines.
-- The script may be in Bengali, English, or mixed; respond in English."""
+- If nothing in this section violates the guidelines, return {"findings": []}.
+- Do not invent guidelines. Do not flag things not explicitly covered by the guidelines document you were given.
+- The script may be in Bengali, English, or mixed Bangla-English (Banglish). Respond in English regardless."""
 
 
 def analyze(script_text: str, guidelines_text: str) -> dict[str, Any]:
@@ -83,8 +91,33 @@ def analyze(script_text: str, guidelines_text: str) -> dict[str, Any]:
                     log.exception("chunk L%d–L%d FAILED: %s", s + 1, e, exc)
 
     merged = _dedupe(all_findings)
+    _annotate_citations(merged, guidelines_text)
     merged.sort(key=lambda f: (f["line_start"], f["line_end"]))
     return {"findings": merged, "_meta": {"chunks": len(chunks), "total_lines": total}}
+
+
+def _annotate_citations(findings: list[dict], guidelines_text: str) -> None:
+    """Set finding['cited'] = True/False depending on whether its guideline_ref
+    appears verbatim (case-insensitive, whitespace-normalised) in the guidelines
+    document. Also log the miss rate so we can spot prompt regressions."""
+    import re
+    def norm(s: str) -> str:
+        return re.sub(r"\s+", " ", (s or "").lower()).strip()
+    haystack = norm(guidelines_text)
+    misses = 0
+    for f in findings:
+        ref = norm(f.get("guideline_ref", ""))
+        cited = bool(ref) and ref in haystack
+        f["cited"] = cited
+        if not cited:
+            misses += 1
+            log.info("citation miss: %r not found in guidelines", f.get("guideline_ref"))
+    if findings:
+        log.info(
+            "citations: %d/%d verbatim from guidelines (%.0f%%)",
+            len(findings) - misses, len(findings),
+            100 * (len(findings) - misses) / len(findings),
+        )
 
 
 def _make_chunks(lines: list[str]) -> list[tuple[int, int]]:

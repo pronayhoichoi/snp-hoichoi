@@ -74,7 +74,11 @@
             <span class="sev-badge sev-{{ f.severity }}">{{ f.severity }}</span>
             <span class="lines mono">L{{ f.line_start }}{% if f.line_end != f.line_start %}–L{{ f.line_end }}{% endif %}</span>
           </div>
-          <div class="ref">{{ f.guideline_ref }}</div>
+          <div class="ref">
+            {% if f.cited %}<span class="ref-tick" title="Verbatim citation from your guidelines">✓</span>
+            {% else %}<span class="ref-warn" title="Not a verbatim match in your guidelines">⚠</span>{% endif %}
+            {{ f.guideline_ref }}
+          </div>
           <div class="reason">{{ f.reason }}</div>
           {% if f.suggestion %}<div class="sugg"><span class="sugg-label">Fix</span> {{ f.suggestion }}</div>{% endif %}
         </button>
@@ -197,7 +201,10 @@ function jumpTo(ln) {
 .finding .ref {
   font: 600 12px var(--hc-font-primary); color: var(--hc-sev-high-fg);
   margin-bottom: 6px; letter-spacing: 0.01em;
+  display: flex; align-items: baseline; gap: 6px;
 }
+.ref-tick { color: var(--hc-success-fg); font-size: 11px; flex-shrink: 0; }
+.ref-warn { color: var(--hc-sev-medium-fg); font-size: 11px; flex-shrink: 0; cursor: help; }
 .finding .reason { font-size: 13px; line-height: 1.55; margin-bottom: 8px; }
 .finding .sugg {
   font-size: 12px; color: var(--hc-text-muted); line-height: 1.5;
