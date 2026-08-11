@@ -120,8 +120,8 @@ function jumpTo(ln) {
   font: 800 26px var(--hc-font-primary); letter-spacing: -0.02em;
   color: var(--hc-text);
 }
-.sev-tile.sev-high .sev-tile-count { color: #ff5060; }
-.sev-tile.sev-medium .sev-tile-count { color: var(--hc-warning); }
+.sev-tile.sev-high .sev-tile-count { color: var(--hc-red); }
+.sev-tile.sev-medium .sev-tile-count { color: #a67310; }
 .sev-tile-label {
   font: 700 11px var(--hc-font-primary); letter-spacing: 0.12em;
   text-transform: uppercase; color: var(--hc-text-muted);
@@ -152,13 +152,13 @@ function jumpTo(ln) {
 .line .txt { white-space: pre-wrap; word-break: break-word; }
 .line.flagged { padding: 6px 8px; }
 .line.flagged.sev-high {
-  background: rgba(210,8,32,0.10); border-left: 3px solid var(--hc-red);
+  background: var(--hc-red-light); border-left: 3px solid var(--hc-red);
 }
 .line.flagged.sev-medium {
-  background: rgba(230,168,23,0.12); border-left: 3px solid var(--hc-warning);
+  background: #fef4dc; border-left: 3px solid var(--hc-warning);
 }
 .line.flagged.sev-low {
-  background: rgba(160,160,160,0.08); border-left: 3px solid var(--hc-text-dim);
+  background: #f0f0f0; border-left: 3px solid var(--hc-light-gray);
 }
 .line.flagged .lno { color: var(--hc-text); }
 .line.pulse {
@@ -177,14 +177,14 @@ function jumpTo(ln) {
 .finding {
   display: block; width: 100%; text-align: left;
   padding: 14px 16px; margin-bottom: 10px;
-  background: var(--hc-surface-1); border: 1px solid var(--hc-surface-3);
+  background: var(--hc-surface-2); border: 1px solid var(--hc-surface-3);
   border-radius: var(--hc-radius-md); border-left-width: 3px;
   cursor: pointer; transition: all 0.15s;
   font-family: var(--hc-font-body); color: var(--hc-text);
 }
 .finding:hover {
   border-color: var(--hc-surface-4); transform: translateX(2px);
-  background: var(--hc-surface-2);
+  background: var(--hc-surface-1); box-shadow: var(--hc-shadow-sm);
 }
 .finding.sev-high { border-left-color: var(--hc-red); }
 .finding.sev-medium { border-left-color: var(--hc-warning); }
@@ -195,7 +195,7 @@ function jumpTo(ln) {
 }
 .finding .lines { color: var(--hc-text-muted); font-size: 11px; }
 .finding .ref {
-  font: 600 12px var(--hc-font-primary); color: #ff5b70;
+  font: 600 12px var(--hc-font-primary); color: var(--hc-red);
   margin-bottom: 6px; letter-spacing: 0.01em;
 }
 .finding .reason { font-size: 13px; line-height: 1.55; margin-bottom: 8px; }
@@ -205,8 +205,8 @@ function jumpTo(ln) {
 }
 .sugg-label {
   font: 700 10px var(--hc-font-primary); letter-spacing: 0.1em;
-  text-transform: uppercase; color: var(--hc-velvet-light);
-  background: rgba(109,5,80,0.30); padding: 2px 6px; border-radius: var(--hc-radius-xs);
+  text-transform: uppercase; color: var(--hc-velvet);
+  background: var(--hc-velvet-light); padding: 2px 6px; border-radius: var(--hc-radius-xs);
   margin-right: 6px;
 }
 
