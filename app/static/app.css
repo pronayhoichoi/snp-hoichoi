@@ -23,17 +23,42 @@
   --hc-red-light: #f8e8ea;
   --hc-velvet-light: #f0e4ed;
 
-  /* Dark surfaces (default theme) */
-  /* Light-theme surfaces (default). All rules elsewhere reference these
-     tokens, so swapping the values here would flip the whole app. */
-  --hc-surface-0: #ffffff;    /* input backgrounds, top bar */
-  --hc-surface-1: #fafafa;    /* app background */
-  --hc-surface-2: #ffffff;    /* cards */
-  --hc-surface-3: #eeeeee;    /* subtle rows, pane headers */
-  --hc-surface-4: #d9d9d9;    /* borders, input borders */
-  --hc-text: #191919;         /* primary text */
-  --hc-text-muted: #666666;   /* secondary text */
-  --hc-text-dim: #aaaaaa;     /* placeholder / tertiary */
+  /* ---- LIGHT THEME (default) ---- */
+  --hc-surface-0: #ffffff;
+  --hc-surface-1: #fafafa;
+  --hc-surface-2: #ffffff;
+  --hc-surface-3: #eeeeee;
+  --hc-surface-4: #d9d9d9;
+  --hc-text: #191919;
+  --hc-text-muted: #666666;
+  --hc-text-dim: #aaaaaa;
+
+  --hc-shadow-sm: 0 1px 4px rgba(0,0,0,0.06);
+  --hc-shadow-md: 0 4px 16px rgba(0,0,0,0.08);
+  --hc-shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
+  --hc-shadow-brand: 0 8px 32px rgba(210,8,32,0.25);
+
+  /* Sev tokens — used by badges, tiles, script-line highlights, finding refs. */
+  --hc-sev-high-bg: #f8e8ea;
+  --hc-sev-high-fg: #d20820;
+  --hc-sev-medium-bg: #fef4dc;
+  --hc-sev-medium-fg: #a67310;
+  --hc-sev-low-bg: #ececec;
+  --hc-sev-low-fg: #666666;
+  --hc-line-low-bg: #f0f0f0;
+
+  --hc-chip-bg: #f0e4ed;
+  --hc-chip-fg: #6d0550;
+
+  --hc-alert-bg: #f8e8ea;
+  --hc-alert-fg: #931520;
+  --hc-alert-border: rgba(210,8,32,0.30);
+
+  --hc-success-bg: #dff5e8;
+  --hc-success-fg: #1a8754;
+
+  --hc-input-focus-bg: #ffffff;
+  --hc-code-bg: #f5f5f5;
 
   /* Type */
   --hc-font-primary: 'Outfit', sans-serif;
@@ -59,12 +84,44 @@
   --hc-radius-xl: 30px;
   --hc-radius-pillow: 50px;
   --hc-radius-full: 9999px;
+}
 
-  /* Shadows (tuned for light theme) */
-  --hc-shadow-sm: 0 1px 4px rgba(0,0,0,0.06);
-  --hc-shadow-md: 0 4px 16px rgba(0,0,0,0.08);
-  --hc-shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
-  --hc-shadow-brand: 0 8px 32px rgba(210,8,32,0.25);
+/* ---- DARK THEME (opt-in via [data-theme="dark"] on <html>) ---- */
+[data-theme="dark"] {
+  --hc-surface-0: #0d0d0d;
+  --hc-surface-1: #191919;
+  --hc-surface-2: #222222;
+  --hc-surface-3: #2a2a2a;
+  --hc-surface-4: #333333;
+  --hc-text: #ffffff;
+  --hc-text-muted: #a0a0a0;
+  --hc-text-dim: #666666;
+
+  --hc-shadow-sm: 0 1px 4px rgba(0,0,0,0.20);
+  --hc-shadow-md: 0 4px 16px rgba(0,0,0,0.30);
+  --hc-shadow-lg: 0 8px 32px rgba(0,0,0,0.40);
+  --hc-shadow-brand: 0 8px 32px rgba(210,8,32,0.35);
+
+  --hc-sev-high-bg: rgba(210,8,32,0.16);
+  --hc-sev-high-fg: #ff5060;
+  --hc-sev-medium-bg: rgba(230,168,23,0.18);
+  --hc-sev-medium-fg: #e6a817;
+  --hc-sev-low-bg: rgba(160,160,160,0.15);
+  --hc-sev-low-fg: #a0a0a0;
+  --hc-line-low-bg: rgba(160,160,160,0.08);
+
+  --hc-chip-bg: rgba(109,5,80,0.30);
+  --hc-chip-fg: #d986c1;
+
+  --hc-alert-bg: rgba(210,8,32,0.10);
+  --hc-alert-fg: #ff8a97;
+  --hc-alert-border: rgba(210,8,32,0.35);
+
+  --hc-success-bg: rgba(26,135,84,0.20);
+  --hc-success-fg: #4ecb87;
+
+  --hc-input-focus-bg: #0d0d0d;
+  --hc-code-bg: #0d0d0d;
 }
 
 * { box-sizing: border-box; }
@@ -214,7 +271,7 @@ form textarea {
 }
 form input:focus, form textarea:focus {
   border-color: var(--hc-red);
-  background: var(--hc-surface-0);
+  background: var(--hc-input-focus-bg);
 }
 form textarea {
   font: 400 13px/1.6 var(--hc-font-mono);
@@ -269,21 +326,39 @@ a.btn:hover, button.btn:hover {
   font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
   padding: 3px 10px; border-radius: var(--hc-radius-xs);
 }
-.sev-badge.sev-high { background: var(--hc-red-light); color: var(--hc-red); }
-.sev-badge.sev-medium { background: #fef4dc; color: #a67310; }
-.sev-badge.sev-low { background: #ececec; color: var(--hc-text-muted); }
+.sev-badge.sev-high { background: var(--hc-sev-high-bg); color: var(--hc-sev-high-fg); }
+.sev-badge.sev-medium { background: var(--hc-sev-medium-bg); color: var(--hc-sev-medium-fg); }
+.sev-badge.sev-low { background: var(--hc-sev-low-bg); color: var(--hc-sev-low-fg); }
 .chip {
   display: inline-block; font: 700 10px var(--hc-font-primary);
   letter-spacing: 0.08em; text-transform: uppercase;
   padding: 3px 10px; border-radius: var(--hc-radius-xs);
-  background: var(--hc-velvet-light); color: var(--hc-velvet); margin-left: 6px;
+  background: var(--hc-chip-bg); color: var(--hc-chip-fg); margin-left: 6px;
 }
 
 /* ---------- Alerts ---------- */
 .error {
-  background: var(--hc-red-light);
-  border: 1px solid rgba(210,8,32,0.30);
-  color: #931520;
+  background: var(--hc-alert-bg);
+  border: 1px solid var(--hc-alert-border);
+  color: var(--hc-alert-fg);
   padding: 12px 14px; border-radius: var(--hc-radius-sm);
   margin: 0 0 16px; font-size: 13px;
 }
+
+/* ---------- Theme toggle ---------- */
+.theme-toggle {
+  background: transparent; border: 1px solid var(--hc-surface-4);
+  color: var(--hc-text-muted);
+  width: 34px; height: 34px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer; padding: 0; margin-right: 4px;
+  transition: all 0.15s;
+}
+.theme-toggle:hover {
+  color: var(--hc-text); border-color: var(--hc-red); background: var(--hc-surface-2);
+}
+.theme-toggle svg { width: 16px; height: 16px; }
+.theme-toggle .icon-sun { display: none; }
+.theme-toggle .icon-moon { display: block; }
+[data-theme="dark"] .theme-toggle .icon-sun { display: block; }
+[data-theme="dark"] .theme-toggle .icon-moon { display: none; }

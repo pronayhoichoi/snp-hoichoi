@@ -120,8 +120,8 @@ function jumpTo(ln) {
   font: 800 26px var(--hc-font-primary); letter-spacing: -0.02em;
   color: var(--hc-text);
 }
-.sev-tile.sev-high .sev-tile-count { color: var(--hc-red); }
-.sev-tile.sev-medium .sev-tile-count { color: #a67310; }
+.sev-tile.sev-high .sev-tile-count { color: var(--hc-sev-high-fg); }
+.sev-tile.sev-medium .sev-tile-count { color: var(--hc-sev-medium-fg); }
 .sev-tile-label {
   font: 700 11px var(--hc-font-primary); letter-spacing: 0.12em;
   text-transform: uppercase; color: var(--hc-text-muted);
@@ -152,13 +152,13 @@ function jumpTo(ln) {
 .line .txt { white-space: pre-wrap; word-break: break-word; }
 .line.flagged { padding: 6px 8px; }
 .line.flagged.sev-high {
-  background: var(--hc-red-light); border-left: 3px solid var(--hc-red);
+  background: var(--hc-sev-high-bg); border-left: 3px solid var(--hc-red);
 }
 .line.flagged.sev-medium {
-  background: #fef4dc; border-left: 3px solid var(--hc-warning);
+  background: var(--hc-sev-medium-bg); border-left: 3px solid var(--hc-warning);
 }
 .line.flagged.sev-low {
-  background: #f0f0f0; border-left: 3px solid var(--hc-light-gray);
+  background: var(--hc-line-low-bg); border-left: 3px solid var(--hc-light-gray);
 }
 .line.flagged .lno { color: var(--hc-text); }
 .line.pulse {
@@ -195,7 +195,7 @@ function jumpTo(ln) {
 }
 .finding .lines { color: var(--hc-text-muted); font-size: 11px; }
 .finding .ref {
-  font: 600 12px var(--hc-font-primary); color: var(--hc-red);
+  font: 600 12px var(--hc-font-primary); color: var(--hc-sev-high-fg);
   margin-bottom: 6px; letter-spacing: 0.01em;
 }
 .finding .reason { font-size: 13px; line-height: 1.55; margin-bottom: 8px; }
@@ -205,8 +205,8 @@ function jumpTo(ln) {
 }
 .sugg-label {
   font: 700 10px var(--hc-font-primary); letter-spacing: 0.1em;
-  text-transform: uppercase; color: var(--hc-velvet);
-  background: var(--hc-velvet-light); padding: 2px 6px; border-radius: var(--hc-radius-xs);
+  text-transform: uppercase; color: var(--hc-chip-fg);
+  background: var(--hc-chip-bg); padding: 2px 6px; border-radius: var(--hc-radius-xs);
   margin-right: 6px;
 }
 

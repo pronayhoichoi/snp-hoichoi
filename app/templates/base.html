@@ -4,6 +4,18 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>{% block title %}SnP Checker · hoichoi{% endblock %}</title>
+  <script>
+    // Set theme BEFORE stylesheet parses to prevent flash-of-light-then-dark.
+    (function () {
+      try {
+        var saved = localStorage.getItem('snp-theme');
+        var wantsDark = saved
+          ? saved === 'dark'
+          : window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (wantsDark) document.documentElement.setAttribute('data-theme', 'dark');
+      } catch (e) { /* ignore */ }
+    })();
+  </script>
   <link rel="stylesheet" href="/static/app.css" />
   <script src="https://unpkg.com/htmx.org@2.0.3"></script>
 </head>
@@ -14,6 +26,10 @@
       <span>SnP Checker</span>
     </a>
     <nav>
+      <button class="theme-toggle" type="button" aria-label="Toggle theme" onclick="toggleTheme()">
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="4.22" y1="4.22" x2="6.34" y2="6.34"/><line x1="17.66" y1="17.66" x2="19.78" y2="19.78"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/><line x1="4.22" y1="19.78" x2="6.34" y2="17.66"/><line x1="17.66" y1="6.34" x2="19.78" y2="4.22"/></svg>
+      </button>
       {% if user %}
         <span class="who">{{ user.email }}</span>
         {% if user.is_admin %}<a href="/admin/guidelines">Guidelines</a>{% endif %}
@@ -25,5 +41,15 @@
     </nav>
   </header>
   <main class="{% block wrap_class %}wrap{% endblock %}">{% block content %}{% endblock %}</main>
+
+  <script>
+    function toggleTheme() {
+      var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      var next = isDark ? 'light' : 'dark';
+      if (next === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+      else document.documentElement.removeAttribute('data-theme');
+      try { localStorage.setItem('snp-theme', next); } catch (e) { /* ignore */ }
+    }
+  </script>
 </body>
 </html>
